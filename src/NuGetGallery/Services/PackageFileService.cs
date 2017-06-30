@@ -22,13 +22,13 @@ namespace NuGetGallery
 
         public Task<ActionResult> CreateDownloadPackageActionResultAsync(Uri requestUrl, Package package)
         {
-            var fileName = BuildFileName(package);
+            var fileName = BuildPackageFileName(package);
             return _fileStorageService.CreateDownloadFileActionResultAsync(requestUrl, Constants.PackagesFolderName, fileName);
         }
 
         public Task<ActionResult> CreateDownloadPackageActionResultAsync(Uri requestUrl, string id, string version)
         {
-            var fileName = BuildFileName(id, version);
+            var fileName = BuildPackageFileName(id, version);
             return _fileStorageService.CreateDownloadFileActionResultAsync(requestUrl, Constants.PackagesFolderName, fileName);
         }
 
@@ -44,7 +44,7 @@ namespace NuGetGallery
                 throw new ArgumentNullException(nameof(version));
             }
 
-            var fileName = BuildFileName(id, version);
+            var fileName = BuildPackageFileName(id, version);
             return _fileStorageService.DeleteFileAsync(Constants.PackagesFolderName, fileName);
         }
 
@@ -55,7 +55,7 @@ namespace NuGetGallery
                 throw new ArgumentNullException(nameof(packageFile));
             }
 
-            var fileName = BuildFileName(package);
+            var fileName = BuildPackageFileName(package);
             return _fileStorageService.SaveFileAsync(Constants.PackagesFolderName, fileName, packageFile, overwrite: false);
         }
 
@@ -85,11 +85,32 @@ namespace NuGetGallery
 
         public async Task<Stream> DownloadPackageFileAsync(Package package)
         {
-            var fileName = BuildFileName(package);
-            return (await _fileStorageService.GetFileAsync(Constants.PackagesFolderName, fileName));
+            var fileName = BuildPackageFileName(package);
+            return (await _fileStorageService.GetPackageFileAsync(Constants.PackagesFolderName, fileName));
         }
 
-        private static string BuildFileName(string id, string version)
+        //Downloads the Readme for the package
+        public async Task<Stream> DownloadReadmeFileAsync(Package package)
+        {
+            if(package == null)
+            {
+                throw new ArgumentNullException("Package cannot be null!");
+            }
+            var fileName = BuildReadmeFileName(package);
+            return (await _fileStorageService.GetReadmeFileAsync(Constants.PackageReadMeFolderName, fileName));
+        }
+
+        private static string BuildPackageFileName(string id, string version)
+        {
+            return BuildFileName(id, version, Constants.NuGetPackageFileExtension);
+        }
+
+        private static string BuildReadMeFileName(string id, string version)
+        {
+            return BuildFileName(id, version, Constants.MarkdownFileExtension);
+        }
+
+        private static string BuildFileName(string id, string version, string extension)
         {
             if (id == null)
             {
@@ -108,13 +129,14 @@ namespace NuGetGallery
             // and remember - version can contain letters too.
             return String.Format(
                 CultureInfo.InvariantCulture,
-                Constants.PackageFileSavePathTemplate,
+                Constants.ReadMeFileSavePathTemplate,
                 id.ToLowerInvariant(),
                 version.ToLowerInvariant(),
-                Constants.NuGetPackageFileExtension);
+                extension);
         }
 
-        private static string BuildFileName(Package package)
+        //Creates the name for the packages
+        private static string BuildPackageFileName(Package package)
         {
             if (package == null)
             {
@@ -128,8 +150,30 @@ namespace NuGetGallery
                 throw new ArgumentException(Strings.PackageIsMissingRequiredData, nameof(package));
             }
 
-            return BuildFileName(
+            return BuildPackageFileName(
                 package.PackageRegistration.Id, 
+                String.IsNullOrEmpty(package.NormalizedVersion) ?
+                    NuGetVersionFormatter.Normalize(package.Version) :
+                    package.NormalizedVersion);
+        }
+
+        //Builds the name for the  Readme file
+        private static string BuildReadmeFileName(Package package)
+        {
+            if (package == null)
+            {
+                throw new ArgumentNullException(nameof(package));
+            }
+
+            if (package.PackageRegistration == null ||
+                String.IsNullOrWhiteSpace(package.PackageRegistration.Id) ||
+                (String.IsNullOrWhiteSpace(package.NormalizedVersion) && String.IsNullOrWhiteSpace(package.Version)))
+            {
+                throw new ArgumentException(Strings.PackageIsMissingRequiredData, nameof(package));
+            }
+
+            return BuildReadMeFileName(
+                package.PackageRegistration.Id,
                 String.IsNullOrEmpty(package.NormalizedVersion) ?
                     NuGetVersionFormatter.Normalize(package.Version) :
                     package.NormalizedVersion);

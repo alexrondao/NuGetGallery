@@ -203,7 +203,7 @@ namespace NuGetGallery
                 var service = CreateService();
 
                 var ex = await Assert.ThrowsAsync<ArgumentNullException>(
-                    () => service.GetFileAsync(
+                    () => service.GetPackageFileAsync(
                         folderName,
                         "theFileName"));
 
@@ -218,7 +218,7 @@ namespace NuGetGallery
                 var service = CreateService();
 
                 var ex = await Assert.ThrowsAsync<ArgumentNullException>(
-                    () => service.GetFileAsync(
+                    () => service.GetPackageFileAsync(
                         Constants.PackagesFolderName,
                         fileName));
 
@@ -236,7 +236,7 @@ namespace NuGetGallery
                     "theFolderName",
                     "theFileName");
 
-                await service.GetFileAsync("theFolderName", "theFileName");
+                await service.GetPackageFileAsync("theFolderName", "theFileName");
 
                 fakeFileSystemService.Verify(x => x.FileExists(expectedPath));
             }
@@ -252,7 +252,7 @@ namespace NuGetGallery
                     "theFolderName",
                     "theFileName");
 
-                await service.GetFileAsync("theFolderName", "theFileName");
+                await service.GetPackageFileAsync("theFolderName", "theFileName");
 
                 fakeFileSystemService.Verify(x => x.OpenRead(expectedPath));
             }
@@ -271,7 +271,7 @@ namespace NuGetGallery
                     fakeFileSystemService.Setup(x => x.OpenRead(expectedPath)).Returns(fakeFileStream);
                     var service = CreateService(fileSystemService: fakeFileSystemService);
 
-                    var fileStream = await service.GetFileAsync("theFolderName", "theFileName");
+                    var fileStream = await service.GetPackageFileAsync("theFolderName", "theFileName");
 
                     Assert.Same(fakeFileStream, fileStream);
                 }
@@ -284,7 +284,7 @@ namespace NuGetGallery
                 fakeFileSystemService.Setup(x => x.FileExists(It.IsAny<string>())).Returns(false);
                 var service = CreateService(fileSystemService: fakeFileSystemService);
 
-                var fileStream = await service.GetFileAsync("theFolderName", "theFileName");
+                var fileStream = await service.GetPackageFileAsync("theFolderName", "theFileName");
 
                 Assert.Null(fileStream);
             }
